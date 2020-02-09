@@ -1,0 +1,297 @@
+<meta charset="UTF-8">
+
+<style type="text/css">
+    #queryForm .form-group {
+        margin-bottom: 0px;
+    }
+    #queryForm{
+        background: #F6F6F6;
+        padding: 15px 0px;
+        border-radius: 10px;
+        margin-bottom: 10px;
+    }
+</style>
+
+<form id="queryForm" class="form-horizontal col-sm-12" role="form" >
+    <div class="form-group col-sm-4">
+        <label class="col-sm-3 control-label">姓名：</label>
+        <div class="col-sm-9">
+            <input type="text" name="name" class="form-control" placeholder="姓名">
+        </div>
+    </div>
+    <div class="form-group col-sm-4">
+        <label class="col-sm-3 control-label">学号：</label>
+        <div class="col-sm-9">
+            <input type="text" name="username" class="form-control" placeholder="学号">
+        </div>
+    </div>
+    <div class="form-group col-sm-2 btn-group">
+        <button type="button" class="btn btn-primary" onclick="findSearch()">
+            <span class="glyphicon glyphicon-search" aria-hidden="true"></span>&nbsp;查询
+        </button>
+        <button type="button" class="btn btn-default" onclick="findEmpty()">
+            <span class="glyphicon glyphicon-trash" aria-hidden="true"></span>&nbsp;清空
+        </button>
+    </div>
+</form>
+
+<table id="stu_table"></table>
+
+<!-- 增删改 -->
+<div id="toolbar" class="btn-group">
+    <button type="button" class="btn btn-default" onclick="add()">
+        <span class="glyphicon glyphicon-plus"></span>新增
+    </button>
+    <button type="button" class="btn btn-default" onclick="edit()">
+        <span class="glyphicon glyphicon-pencil"></span>修改
+    </button>
+    <button type="button" class="btn btn-default" onclick="del()">
+        <span class="glyphicon glyphicon-remove"></span>删除
+    </button>
+</div>
+
+<script type="text/javascript">
+    $("#stu_table").bootstrapTable({
+        url: 'student/page',    //表格数据请求地址
+        toolbar: '#toolbar',    //自定义组件
+        striped: true,	//隔行换色
+        sortName: 'id',   //定义那一列可以排序
+        sortOrder: 'desc',	//排序方式
+        height: tableHeight(),		//设置高度
+        pagination: true,	//显示表格的底部工具栏
+        sidePagination: 'server',   //client客户端分页，server服务器分页
+        pageNumber: 1,		//初始的页数
+        pageSize: 10,		//默认每页数据
+        pageList: [10, 15, 50, 100],	//设置分页选择每页显示的条数
+        search: true,		//定义右上方的搜索框，输入即可以开始搜索
+        showColumns: true,	//选列的下拉菜单
+        showRefresh: true,	//刷新按钮
+        showToggle: true,	//视图切换
+        toolbarAlign: 'left',	//自定义按钮位置
+        clickToSelect: true,	//点击行选中
+        //singleSelect: true,		//单选
+        queryParams: function (param){	//传递参数
+            var params = $('#queryForm').serializeObject();
+            params.limit = param.limit;
+            params.offset = param.offset;
+            params.search = param.search;
+            params.sort = param.sort;
+            params.order=param.order;
+            return params;
+        },
+        columns:[{
+            checkbox: true    //多选框
+        },{
+            field: 'id',	//每列的字段名
+            title: 'id',	//表头所显示的名字
+            halign: 'center',	//表头的对齐方式
+            valign: 'middle',	//表格对齐方式居中
+            order: 'asc',		//默认排序方式
+            sortable: true,		//设置可以排序
+            align: 'center'		//表格数据对齐方式
+        },{
+            field: 'name',
+            title: '姓名',
+            valign: 'middle',
+            halign: 'center',
+            align: 'center'
+        },{
+            field: 'username',
+            title: '用户名',
+            valign: 'middle',
+            halign: 'center',
+            align: 'center'
+        },{
+            field: 'grade',
+            title: '成绩',
+            valign: 'middle',
+            halign: 'center',
+            align: 'center',
+            editable: {
+                type: 'text',
+                title: '成绩',
+                inputclass: '0',
+                //添加效验规则
+                validate: function (value) {
+                    if (!value){
+                        return '成绩不能为空';
+                    }
+                    var regPos = /^\d+(\.\d+)?$/; //非负浮点数
+                    if(!regPos.test(value)) {
+                        return "请输入有效的成绩";
+                    }
+                }
+            }
+        },{
+            field: 'tbClass',
+            title: '班级',
+            valign: 'middle',
+            halign: 'center',
+            align: 'center',
+            formatter: "tbClassName"
+        },{
+            field: 'isUsed',
+            title: '状态',
+            valign: 'middle',
+            halign: 'center',
+            align: 'center',
+            formatter: 'typeSwitch' //表格中增加按钮
+        },{
+            field: 'operation',
+            title: '操作',
+            valign: 'middle',
+            halign: 'center',
+            align: 'center',
+            events: 'operateEvents',  //给按钮注册事件
+            formatter: 'addFunctionAlty' //表格中增加按钮
+        }],
+        onLoadSuccess: function () {	//在成功加载远程数据时触发
+            $("[name='switch']").bootstrapSwitch({
+                onText : "启用",      // 设置ON文本
+                offText : "禁用",    // 设置OFF文本
+                onColor : "success",// 设置ON文本颜色(info/success/warning/danger/primary)
+                offColor : "warning",  // 设置OFF文本颜色 (info/success/warning/danger/primary)
+                size : "small",    // 设置控件大小,从小到大  (mini/small/normal/large)
+                // 当开关状态改变时触发
+                onSwitchChange : function(event, state) {
+                    id = this.value;
+                    $.post('student/update',{id: id, isUsed: state},function(){
+
+                    });
+                }
+            });
+        },
+        //编辑单元格后保存。
+        //field 编辑的字段
+        //row   编辑的当前行
+        //oldValue  编辑前元素的值。
+        onEditableSave: function (field, row, oldValue, $el) {
+            $.post('student/updateGrade', {id: row.id, grade: row.grade}, function(){
+            });
+        }
+    });
+
+    //表格中开关控件
+    function typeSwitch(value, row, index){
+        if (value) {
+            return "<input value=" + row.id + " name='switch' type='checkbox' checked />";
+        } else {
+            return "<input value=" + row.id + " name='switch' type='checkbox' />";
+        }
+    }
+    
+    //表格中按钮样式
+    function addFunctionAlty(value, row, index) {
+        return [
+            '<button id="update" type="button" class="btn btn-default">修改</button>',
+            '<button id="del" type="button" class="btn btn-default">删除</button>',
+        ].join('');
+    }
+    
+    //监听表格中按钮的点击事件
+    window.operateEvents = {
+        //修改
+        "click #update":function(ev,value,row,index){
+            var dialog = $('<div class="modal fade" id="myModal" tabindex="-1" aria-labelledby="myModalLabel"></div>');
+            var id = row.id;
+            dialog.load("student/edit?id="+id);
+            /*添加到body中*/
+            $("body").append(dialog);
+            /*弹出模态框,绑定关闭后的事件*/
+            dialog.modal().on('hidden.bs.modal', function () {
+                //删除模态框
+                dialog.remove();
+                $("#stu_table").bootstrapTable('refresh');
+            });
+        },"click #del":function(ev,value,row,index){     //删除
+            bootbox.confirm("确定删除当前行数据吗?", function(result){
+                if(result){
+                    $.post('student/delete1',{id : row.id},function(result){
+                        /* refresh刷新 */
+                        $("#stu_table").bootstrapTable('refresh');
+                        bootbox.alert('<h4>'+result.msg+'</h4>');
+                    });
+                }
+            });
+        }
+    };
+
+    //班级名称
+    function tbClassName(value, row, index){
+        return value?value.name: '';
+    }
+
+    //设置表格高度
+    function tableHeight() {
+        return $(window).height() - 100;
+    }
+
+    //新增
+    function add(){
+        var dialog = $('<div class="modal fade" id="myModal" tabindex="-1" aria-labelledby="myModalLabel"></div>');
+        dialog.load("student/edit");
+        $("body").append(dialog);
+        /*弹出模态框,绑定关闭后的事件*/
+        dialog.modal().on('hidden.bs.modal', function () {
+            //删除
+            dialog.remove();
+        });
+    }
+
+    //修改
+    function edit(){
+        var str = $("#stu_table").bootstrapTable('getSelections');
+        if(str.length != 1){
+            bootbox.alert("请选中一行进行编辑");
+            return ;
+        }
+        var dialog = $('<div class="modal fade" id="myModal" tabindex="-1" aria-labelledby="myModalLabel"></div>');
+        var id = str[0].id;
+        dialog.load("student/edit?id="+id);
+        /*添加到body中*/
+        $("body").append(dialog);
+        /*弹出模态框,绑定关闭后的事件*/
+        dialog.modal().on('hidden.bs.modal', function () {
+            //删除模态框
+            dialog.remove();
+            $("#stu_table").bootstrapTable('refresh');
+        });
+    }
+
+    /*删除*/
+    function del(){
+        var str = $("#stu_table").bootstrapTable('getSelections');
+        if(str.length < 1){
+            bootbox.alert("请选中行进行删除");
+        }else{
+            bootbox.confirm("确定删除选中的"+str.length+"行数据吗?", function(result){
+                if(result){
+                    var ids = "";
+                    for(i = 0; i < str.length; i++){
+                        ids += str[i].id+",";
+                    }
+                    if(ids.length > 0){
+                        ids = ids.substring(0, ids.length-1);
+                    }
+                    $.post('student/delete1',{id : ids},function(result){
+                        /* refresh刷新 */
+                        $("#stu_table").bootstrapTable('refresh');
+                        bootbox.alert('<h4>'+result.msg+'</h4>');
+                    });
+                }
+            });
+        }
+    }
+
+    //查询
+    function findSearch() {
+        $("#stu_table").bootstrapTable('refresh');
+    }
+
+    //清空查询
+    function findEmpty() {
+        $('#queryForm')[0].reset();
+        $("#stu_table").bootstrapTable('refresh');
+    }
+
+</script>

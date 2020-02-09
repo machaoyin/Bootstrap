@@ -1,0 +1,61 @@
+<meta charset="UTF-8">
+
+<textarea id="summernote" class="summernote" name="text"></textarea>
+
+<button type="button" class="btn btn-success" onclick="sub()">
+    <span class="glyphicon glyphicon-ok"></span> 保存
+</button>
+
+<script type="text/javascript">
+    $(function() {
+        $('#summernote').summernote({
+            height: 400,    //设置高度
+            toolbar: [      //自定义工具栏
+                ['style',['style']],
+                ['font',['bold','underline','clear']],
+                ['fontname',['fontname']],
+                ['color',['color']],
+                ['para',['ul','ol','paragraph', 'height', 'hr']],
+                ['table',['table']],
+                ['insert',['link','picture','video']],
+                ['view',['fullscreen','codeview','help']]
+            ],
+            tabsize : 2,
+            lang : 'zh-CN',
+            callbacks : {     // 回调函数
+                // 图片上传
+                onImageUpload: function(files) {
+                    var formData = new FormData();
+                    formData.append("file", files[0]);
+                    $.ajax({
+                        url: 'textEdit/imgUpload', //后台文件上传接口
+                        type: 'POST',
+                        data: formData,
+                        processData: false,
+                        contentType: false,
+                        success: function (data) {
+                            //图片插入到summernote中
+                            $("#summernote").summernote('insertImage', data);
+                        },
+                        error: function () {
+                            alert("上传失败")
+                        }
+                    })
+                },
+                //清除word复制的格式
+                onPaste: function (ne) {
+                    var bufferText = ((ne.originalEvent || ne).clipboardData || window.clipboardData).getData('Text/plain');
+                    ne.preventDefault ? ne.preventDefault() : (ne.returnValue = false);
+                    setTimeout(function () {
+                        document.execCommand("insertText", false, bufferText);
+                    }, 10);
+                }
+            }
+        });
+    });
+    
+    function sub() {
+        var summernote = $('#summernote').summernote('code');
+        console.log(summernote);
+    }
+</script>

@@ -1,0 +1,20 @@
+<meta charset="UTF-8">
+<div style="width: 800px;">
+    <input type="file" name="file" id="file" multiple class="file"  />
+</div>
+
+<script type="text/javascript">
+    $('#file').fileinput({
+        language: 'zh',     //设置语言
+        dropZoneEnabled: true,      //是否显示拖拽区域
+        dropZoneTitle: "可以将图片拖放到这里",    //拖拽区域显示文字
+        uploadUrl: 'file/imgSave',  //上传路径
+        allowedFileExtensions: ['jpg', 'png', 'gif', 'jpeg'],   //指定上传文件类型
+        maxFileSize: 0,
+        maxFileSize: 2048,   //上传文件最大值，单位kb
+        uploadAsync: true,  //异步上传
+        maxFileCount: 2    //上传文件最大个数。
+    }).on("fileuploaded", function(event,data) { //异步上传成功后回调
+        console.log(data);
+    });
+</script>
